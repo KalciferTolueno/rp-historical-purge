@@ -12,8 +12,14 @@ sola **Aplicación** en EasyPanel.
 - Conserva también los eventos CRA vinculados por `procedures.event_id` y sus imágenes.
 - Sólo considera objetos antiguos bajo `images/events/`; no toca `tickets/` ni `referential/`.
 - Elimina archivos únicamente mediante la API oficial de Supabase Storage.
-- Si no puede leer Procedimientos o Storage, aborta y no continúa con CRA.
-- Storage se completa antes de comenzar a borrar filas históricas de `cra_events`.
+- Si no puede leer Procedimientos, aborta antes de cualquier escritura.
+- Elimina primero las filas históricas de `cra_events`; Storage se habilita sólo
+  cuando ya no queda ningún evento antiguo eliminable.
+- Antes del primer borrado en Storage, recorre las referencias de imagen de
+  todos los eventos CRA conservados y excluye esas rutas; además incorpora los
+  eventos nuevos recibidos mientras la comprobación está en curso.
+- Si se interrumpe una ejecución, el peor resultado posible es un archivo
+  sobrante en Storage, nunca un evento visible al que esta tarea quitó la imagen.
 - Trabaja por lotes, con pausa y límites por ejecución para reducir presión sobre PostgREST.
 - Puede vigilar el disco y ejecutar una purga protegida al alcanzar un umbral configurable.
 - Aplica enfriamiento e histéresis para evitar purgas repetidas o simultáneas.
@@ -99,13 +105,22 @@ npm run start:once
 
 ## Comportamiento de los límites
 
-Si se alcanza `MAX_STORAGE_DELETES_PER_RUN`, la tarea se detiene antes de borrar
-filas CRA. La siguiente ejecución continúa limpiando Storage. Sólo cuando la fase
-Storage termina se habilita la purga de `cra_events`.
+Si se alcanza `MAX_CRA_DELETES_PER_RUN`, esa ejecución no toca Storage. La
+siguiente ejecución continúa retirando filas antiguas. Sólo cuando termina esa
+fase se comprueban todas las imágenes aún referenciadas y se habilita Storage.
+
+Si se alcanza `MAX_STORAGE_DELETES_PER_RUN`, las filas CRA ya quedaron
+correctamente depuradas y la siguiente ejecución continúa con los archivos
+sobrantes. Un reinicio entre ambas fases puede dejar archivos huérfanos, lo que
+ocupa espacio pero no rompe la visualización de eventos conservados.
 
 Los eventos vinculados a Procedimientos se conservan permanentemente. Esto evita
 que una fila antigua de Procedimientos que depende de su `event_id` pierda la
 imagen en una ejecución futura.
+
+No se automatiza `VACUUM FULL`: Storage libera sus archivos mediante su API y
+PostgreSQL usa autovacuum para reutilizar espacio. Un `VACUUM FULL` sólo debe
+evaluarse como mantenimiento supervisado porque bloquea la tabla.
 
 ## Despliegue
 

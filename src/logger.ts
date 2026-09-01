@@ -27,15 +27,21 @@ const LABELS: Record<string, string> = {
   storageScanned: 'Archivos Storage revisados',
   storageDeleted: 'Archivos Storage eliminados',
   storageProtected: 'Archivos Storage protegidos',
+  storageReferenced: 'Archivos usados por eventos conservados',
   storagePhaseComplete: 'Fase Storage completa',
+  storagePhaseSkipped: 'Fase Storage omitida',
+  storageSkipReason: 'Motivo de omisión de Storage',
   craScanned: 'Eventos CRA revisados',
   craDeleted: 'Eventos CRA eliminados',
   craProtected: 'Eventos CRA protegidos',
+  craPhaseComplete: 'Fase CRA completa',
   craPhaseSkipped: 'Fase CRA omitida',
+  remainingCraReferences: 'Imágenes aún referenciadas por CRA',
   scanned: 'Revisados',
   deleted: 'Eliminados',
   wouldDelete: 'Se eliminarían',
   protected: 'Protegidos',
+  referenced: 'Todavía en uso',
   path: 'Disco observado',
   totalGB: 'Capacidad física',
   usableTotalGB: 'Capacidad utilizable',
@@ -91,6 +97,9 @@ function valueLabel(key: string, value: unknown, timezone: string): string {
     return `${localDate(value, timezone)} (${timezone})`;
   }
   if (key === 'schedule' && value === '30 3 * * 0') return 'Domingo 03:30 (30 3 * * 0)';
+  if (key === 'storageSkipReason' && value === 'cra-pending') {
+    return 'Quedan eventos CRA antiguos por retirar; no se tocó Storage';
+  }
   if (key.endsWith('Percent')) return `${value}%`;
   if (key.endsWith('Minutes')) return `${value} minutos`;
   if (key.endsWith('Hours')) return `${value} horas`;
@@ -160,17 +169,24 @@ function summaryLines(context: Record<string, unknown>, timezone: string): strin
     `    Imágenes protegidas: ${String(context.pathsProtected ?? 0)}`,
     `    Eventos vinculados conservados: ${String(context.linkedEventsProtected ?? 0)}`,
     '',
-    '  STORAGE',
-    `    Archivos revisados: ${String(context.storageScanned ?? 0)}`,
-    `    ${dryRun ? 'Archivos que se eliminarían' : 'Archivos eliminados'}: ${String(context.storageDeleted ?? 0)}`,
-    `    Archivos protegidos: ${String(context.storageProtected ?? 0)}`,
-    `    Fase completa: ${valueLabel('storagePhaseComplete', context.storagePhaseComplete, timezone)}`,
-    '',
     '  BASE DE DATOS CRA',
     `    Eventos revisados: ${String(context.craScanned ?? 0)}`,
     `    ${dryRun ? 'Eventos que se eliminarían' : 'Eventos eliminados'}: ${String(context.craDeleted ?? 0)}`,
     `    Eventos protegidos: ${String(context.craProtected ?? 0)}`,
+    `    Fase completa: ${valueLabel('craPhaseComplete', context.craPhaseComplete, timezone)}`,
     `    Fase omitida: ${valueLabel('craPhaseSkipped', context.craPhaseSkipped, timezone)}`,
+    '',
+    '  STORAGE (SÓLO DESPUÉS DE CRA)',
+    `    Archivos revisados: ${String(context.storageScanned ?? 0)}`,
+    `    ${dryRun ? 'Archivos que se eliminarían' : 'Archivos eliminados'}: ${String(context.storageDeleted ?? 0)}`,
+    `    Protegidos por Procedimientos: ${String(context.storageProtected ?? 0)}`,
+    `    Conservados porque CRA aún los usa: ${String(context.storageReferenced ?? 0)}`,
+    `    Referencias CRA comprobadas: ${String(context.remainingCraReferences ?? 0)}`,
+    `    Fase completa: ${valueLabel('storagePhaseComplete', context.storagePhaseComplete, timezone)}`,
+    `    Fase omitida: ${valueLabel('storagePhaseSkipped', context.storagePhaseSkipped, timezone)}`,
+    ...(context.storageSkipReason
+      ? [`    Motivo: ${valueLabel('storageSkipReason', context.storageSkipReason, timezone)}`]
+      : []),
   ];
 }
 
@@ -179,7 +195,9 @@ function progressLine(entry: LogEntry, timezone: string): string {
   const area = entry.message.includes('Storage') ? 'STORAGE' : 'CRA';
   const actionKey = context.deleted !== undefined ? 'Eliminados' : 'Se eliminarían';
   const actionValue = context.deleted ?? context.wouldDelete ?? 0;
-  return `[${localDate(entry.timestamp, timezone)}] PROGRESO ${area} | Revisados: ${String(context.scanned ?? 0)} | ${actionKey}: ${String(actionValue)} | Protegidos: ${String(context.protected ?? 0)}`;
+  const referenced =
+    context.referenced === undefined ? '' : ` | Todavía en uso: ${String(context.referenced)}`;
+  return `[${localDate(entry.timestamp, timezone)}] PROGRESO ${area} | Revisados: ${String(context.scanned ?? 0)} | ${actionKey}: ${String(actionValue)} | Protegidos: ${String(context.protected ?? 0)}${referenced}`;
 }
 
 export function formatLogEntry(
@@ -191,6 +209,11 @@ export function formatLogEntry(
 
   if (entry.message === 'Página de Storage revisada' || entry.message === 'Página CRA revisada') {
     return progressLine(entry, timezone);
+  }
+
+  if (entry.message === 'Comprobación de referencias CRA en progreso') {
+    const context = entry.context ?? {};
+    return `[${localDate(entry.timestamp, timezone)}] PROGRESO REFERENCIAS CRA | Filas revisadas: ${String(context.scanned ?? 0)} | Imágenes aún en uso: ${String(context.referenced ?? 0)}`;
   }
 
   const level = entry.level === 'warn' ? 'ATENCIÓN' : entry.level === 'error' ? 'ERROR' : 'INFO';

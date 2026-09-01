@@ -45,9 +45,14 @@ export interface PurgeSummary {
   storageScanned: number;
   storageDeleted: number;
   storageProtected: number;
+  storageReferenced: number;
   storagePhaseComplete: boolean;
+  storagePhaseSkipped: boolean;
+  storageSkipReason: string | null;
   craScanned: number;
   craDeleted: number;
   craProtected: number;
+  craPhaseComplete: boolean;
   craPhaseSkipped: boolean;
+  remainingCraReferences: number;
 }

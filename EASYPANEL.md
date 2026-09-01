@@ -40,6 +40,10 @@ DISK_PRESSURE_RETENTION_DAYS=30
 Desplegar una vez y revisar el log `Purga histórica finalizada`. Los campos
 `storageDeleted` y `craDeleted` representan lo que se borraría en `dry-run`.
 
+En la versión segura, la sección **BASE DE DATOS CRA** aparece antes de
+**STORAGE**. Si `Fase CRA completa: No`, debe aparecer `Fase Storage omitida:
+Sí`; es el comportamiento esperado y evita dejar eventos visibles sin imagen.
+
 Luego cambiar `RUN_ON_START=false`. Si los conteos y rutas protegidas son
 coherentes, cambiar `PURGE_MODE=execute` y desplegar nuevamente. La ejecución
 real ocurrirá en el siguiente horario programado.
@@ -56,7 +60,10 @@ observando otro filesystem.
 - Revisar semanalmente que exista un log de finalización.
 - Un error de protección o Storage termina la ejecución con un log de nivel `error`.
 - Mantener `LOG_FORMAT=pretty` para que la consola sea legible por cualquier operador.
-- Si `storagePhaseComplete=false`, no se tocaron filas CRA en esa ejecución.
+- Si `craPhaseComplete=false`, Storage queda intacto y la próxima ejecución
+  continúa con las filas CRA antiguas.
+- Antes de borrar Storage, el proceso comprueba las rutas usadas por todos los
+  eventos CRA que permanecerán en la aplicación.
 - Al alcanzar 90%, el monitor usa la retención de emergencia de 30 días.
 - Si el disco continúa alto, espera 6 horas antes de repetir; al bajar a 85% se rearma.
 - No automatizar `VACUUM FULL`; realizarlo sólo como mantenimiento supervisado.

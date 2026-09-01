@@ -37,11 +37,16 @@ test('resume una simulación sin sugerir que hubo borrado real', () => {
       storageScanned: 100,
       storageDeleted: 80,
       storageProtected: 20,
+      storageReferenced: 3,
       storagePhaseComplete: true,
+      storagePhaseSkipped: false,
+      storageSkipReason: null,
       craScanned: 100,
       craDeleted: 75,
       craProtected: 25,
+      craPhaseComplete: true,
       craPhaseSkipped: false,
+      remainingCraReferences: 15,
     },
   };
   const output = formatLogEntry(entry, 'pretty', 'America/Santiago');
@@ -49,6 +54,34 @@ test('resume una simulación sin sugerir que hubo borrado real', () => {
   assert.match(output, /Archivos que se eliminarían: 80/);
   assert.match(output, /Eventos que se eliminarían: 75/);
   assert.match(output, /Procedimientos conservados: 25/);
+  assert.match(output, /STORAGE \(SÓLO DESPUÉS DE CRA\)/);
+  assert.match(output, /Conservados porque CRA aún los usa: 3/);
+});
+
+test('explica cuando Storage queda intacto por límite CRA', () => {
+  const output = formatLogEntry(
+    {
+      timestamp,
+      level: 'info',
+      message: 'Purga histórica finalizada',
+      context: {
+        mode: 'dry-run',
+        cutoff: '2026-07-03T09:12:57.641Z',
+        craDeleted: 50000,
+        craPhaseComplete: false,
+        craPhaseSkipped: false,
+        storageDeleted: 0,
+        storagePhaseComplete: false,
+        storagePhaseSkipped: true,
+        storageSkipReason: 'cra-pending',
+      },
+    },
+    'pretty',
+    'America/Santiago',
+  );
+
+  assert.match(output, /Fase omitida: Sí/);
+  assert.match(output, /Quedan eventos CRA antiguos por retirar; no se tocó Storage/);
 });
 
 test('conserva JSON para integración técnica', () => {

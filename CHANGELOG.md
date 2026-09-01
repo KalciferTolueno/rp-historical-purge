@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0 — 2026-09-01
+
+- Orden seguro ante interrupciones: filas CRA primero y archivos Storage después.
+- Storage queda completamente bloqueado mientras exista algún evento CRA antiguo
+  eliminable o no se hayan podido comprobar las referencias conservadas.
+- Todas las rutas aún utilizadas por CRA se normalizan y protegen antes de borrar.
+- Los eventos nuevos recibidos durante la comprobación se incorporan antes de
+  cada lote de Storage, sin detener ni modificar la recepción Realtime.
+- Procedimientos y eventos vinculados se revalidan durante ambas fases.
+- Los límites ya no pueden dejar una fila visible sin imagen: si se alcanza el
+  límite CRA sólo quedan archivos sobrantes para una ejecución posterior.
+- Logs explican si Storage fue omitido y cuántas imágenes siguen en uso.
+- `VACUUM FULL` continúa expresamente fuera de la automatización.
+
 ## 1.2.0 — 2026-09-01
 
 - Formato `pretty` predeterminado con bloques ordenados y etiquetas en español.
