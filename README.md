@@ -33,6 +33,7 @@ PURGE_MODE=dry-run
 RETENTION_DAYS=60
 PURGE_SCHEDULE=30 3 * * 0
 TZ=America/Santiago
+LOG_FORMAT=pretty
 RUN_ON_START=true
 MAX_STORAGE_DELETES_PER_RUN=5000
 MAX_CRA_DELETES_PER_RUN=50000
@@ -71,6 +72,15 @@ La política recomendada es:
 
 El monitor respeta `PURGE_MODE`: en `dry-run` sólo informa qué eliminaría. Una
 purga programada y una purga por disco nunca se ejecutan simultáneamente.
+
+## Logs para personas
+
+`LOG_FORMAT=pretty` presenta bloques en español con fechas de Chile, motivo de
+la ejecución, estado del disco, protección aplicada y un resumen final. El modo
+queda siempre identificado como `SIMULACIÓN` o `EJECUCIÓN REAL`.
+
+Para integraciones automáticas se puede usar `LOG_FORMAT=json`, que conserva una
+línea JSON estructurada por evento.
 
 ## Ejecución local de vista previa
 

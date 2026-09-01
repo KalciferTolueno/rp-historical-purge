@@ -32,6 +32,11 @@ async function guardedRun(
 
   running = true;
   try {
+    logger.info('Ejecución de purga solicitada', {
+      reason,
+      mode: config.mode,
+      retentionDays,
+    });
     await runPurge({ ...config, retentionDays });
     return 'completed';
   } catch (error) {

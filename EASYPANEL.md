@@ -27,6 +27,7 @@ Usar inicialmente:
 PURGE_MODE=dry-run
 RUN_ON_START=true
 RETENTION_DAYS=60
+LOG_FORMAT=pretty
 DISK_MONITOR_ENABLED=true
 DISK_PATH=/
 DISK_TRIGGER_PERCENT=90
@@ -54,6 +55,7 @@ observando otro filesystem.
 - Horario recomendado: domingo 03:30 `America/Santiago`.
 - Revisar semanalmente que exista un log de finalización.
 - Un error de protección o Storage termina la ejecución con un log de nivel `error`.
+- Mantener `LOG_FORMAT=pretty` para que la consola sea legible por cualquier operador.
 - Si `storagePhaseComplete=false`, no se tocaron filas CRA en esa ejecución.
 - Al alcanzar 90%, el monitor usa la retención de emergencia de 30 días.
 - Si el disco continúa alto, espera 6 horas antes de repetir; al bajar a 85% se rearma.

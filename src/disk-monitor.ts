@@ -83,9 +83,11 @@ export function diskUsageLogContext(usage: DiskUsage): Record<string, unknown> {
   return {
     path: usage.path,
     totalGB: Number((usage.totalBytes / gigabyte).toFixed(1)),
+    usableTotalGB: Number(((usage.usedBytes + usage.availableBytes) / gigabyte).toFixed(1)),
     usedGB: Number((usage.usedBytes / gigabyte).toFixed(1)),
     availableGB: Number((usage.availableBytes / gigabyte).toFixed(1)),
     totalGiB: Number((usage.totalBytes / gibibyte).toFixed(1)),
+    usableTotalGiB: Number(((usage.usedBytes + usage.availableBytes) / gibibyte).toFixed(1)),
     usedGiB: Number((usage.usedBytes / gibibyte).toFixed(1)),
     availableGiB: Number((usage.availableBytes / gibibyte).toFixed(1)),
     usedPercent: usage.usedPercent,
