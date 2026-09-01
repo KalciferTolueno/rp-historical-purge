@@ -15,6 +15,8 @@ sola **Aplicación** en EasyPanel.
 - Si no puede leer Procedimientos o Storage, aborta y no continúa con CRA.
 - Storage se completa antes de comenzar a borrar filas históricas de `cra_events`.
 - Trabaja por lotes, con pausa y límites por ejecución para reducir presión sobre PostgREST.
+- Puede vigilar el disco y ejecutar una purga protegida al alcanzar un umbral configurable.
+- Aplica enfriamiento e histéresis para evitar purgas repetidas o simultáneas.
 - No ejecuta `VACUUM FULL`, no instala triggers y no modifica la recepción Realtime.
 
 ## Variables
@@ -35,10 +37,39 @@ RUN_ON_START=true
 MAX_STORAGE_DELETES_PER_RUN=5000
 MAX_CRA_DELETES_PER_RUN=50000
 BATCH_DELAY_MS=150
+DISK_MONITOR_ENABLED=true
+DISK_PATH=/
+DISK_TRIGGER_PERCENT=90
+DISK_REARM_PERCENT=85
+DISK_CHECK_INTERVAL_MINUTES=5
+DISK_TRIGGER_COOLDOWN_HOURS=6
+DISK_PRESSURE_RETENTION_DAYS=30
 ```
 
 Después de revisar el primer log, cambiar `RUN_ON_START=false` y, cuando la
 vista previa sea correcta, `PURGE_MODE=execute`.
+
+## Protección por uso de disco
+
+Con `DISK_MONITOR_ENABLED=true`, el proceso consulta cada 5 minutos el sistema
+de archivos indicado por `DISK_PATH`. Al llegar a 90% solicita inmediatamente
+una purga con la misma protección de Procedimientos.
+
+La primera línea `Monitor de disco iniciado` informa `totalGiB`, `usedGiB` y
+`usedPercent`. Antes de activar `execute`, `totalGiB` debe coincidir
+aproximadamente con el disco del servidor. En la instalación actual se espera
+un total cercano a 376 GiB. Si muestra el tamaño del contenedor y no el disco
+del host, mantener el monitor desactivado hasta montar la ruta correcta.
+
+La política recomendada es:
+
+- Purga semanal: conserva 60 días (`RETENTION_DAYS=60`).
+- Emergencia al 90%: conserva 30 días (`DISK_PRESSURE_RETENTION_DAYS=30`).
+- Si el disco sigue sobre 90%, puede repetir tras 6 horas.
+- Cuando baja a 85% se rearma para una futura subida.
+
+El monitor respeta `PURGE_MODE`: en `dry-run` sólo informa qué eliminaría. Una
+purga programada y una purga por disco nunca se ejecutan simultáneamente.
 
 ## Ejecución local de vista previa
 

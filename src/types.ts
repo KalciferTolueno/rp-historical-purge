@@ -11,6 +11,21 @@ export interface PurgeConfig {
   maxStorageDeletesPerRun: number;
   maxCraDeletesPerRun: number;
   batchDelayMs: number;
+  diskMonitorEnabled: boolean;
+  diskPath: string;
+  diskTriggerPercent: number;
+  diskRearmPercent: number;
+  diskCheckIntervalMinutes: number;
+  diskTriggerCooldownHours: number;
+  diskPressureRetentionDays: number;
+}
+
+export interface DiskUsage {
+  path: string;
+  totalBytes: number;
+  usedBytes: number;
+  availableBytes: number;
+  usedPercent: number;
 }
 
 export interface ProtectionSnapshot {

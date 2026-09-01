@@ -13,6 +13,25 @@ test('la configuración es segura por defecto', () => {
   assert.equal(config.mode, 'dry-run');
   assert.equal(config.retentionDays, 60);
   assert.equal(config.runOnStart, false);
+  assert.equal(config.diskMonitorEnabled, false);
+  assert.equal(config.diskTriggerPercent, 90);
+  assert.equal(config.diskPressureRetentionDays, 30);
+});
+
+test('valida la histéresis y retención de emergencia', () => {
+  assert.throws(
+    () => loadConfig({ ...validEnv, DISK_REARM_PERCENT: '90' }),
+    /debe ser menor/,
+  );
+  assert.throws(
+    () =>
+      loadConfig({
+        ...validEnv,
+        RETENTION_DAYS: '60',
+        DISK_PRESSURE_RETENTION_DAYS: '90',
+      }),
+    /no puede superar/,
+  );
 });
 
 test('rechaza una retención menor a 30 días', () => {

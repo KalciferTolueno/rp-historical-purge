@@ -27,6 +27,13 @@ Usar inicialmente:
 PURGE_MODE=dry-run
 RUN_ON_START=true
 RETENTION_DAYS=60
+DISK_MONITOR_ENABLED=true
+DISK_PATH=/
+DISK_TRIGGER_PERCENT=90
+DISK_REARM_PERCENT=85
+DISK_CHECK_INTERVAL_MINUTES=5
+DISK_TRIGGER_COOLDOWN_HOURS=6
+DISK_PRESSURE_RETENTION_DAYS=30
 ```
 
 Desplegar una vez y revisar el log `Purga histórica finalizada`. Los campos
@@ -36,12 +43,19 @@ Luego cambiar `RUN_ON_START=false`. Si los conteos y rutas protegidas son
 coherentes, cambiar `PURGE_MODE=execute` y desplegar nuevamente. La ejecución
 real ocurrirá en el siguiente horario programado.
 
+En el mismo primer arranque, revisar el log `Monitor de disco iniciado`.
+`totalGiB` debe ser cercano al tamaño del disco que muestra EasyPanel. Para el
+servidor actual se esperan aproximadamente 376 GiB. Si no coincide, dejar
+`DISK_MONITOR_ENABLED=false`: el contenedor está observando otro filesystem.
+
 ## 4. Operación
 
 - Horario recomendado: domingo 03:30 `America/Santiago`.
 - Revisar semanalmente que exista un log de finalización.
 - Un error de protección o Storage termina la ejecución con un log de nivel `error`.
 - Si `storagePhaseComplete=false`, no se tocaron filas CRA en esa ejecución.
+- Al alcanzar 90%, el monitor usa la retención de emergencia de 30 días.
+- Si el disco continúa alto, espera 6 horas antes de repetir; al bajar a 85% se rearma.
 - No automatizar `VACUUM FULL`; realizarlo sólo como mantenimiento supervisado.
 
 ## 5. Detención inmediata

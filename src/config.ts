@@ -51,11 +51,29 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): PurgeConfig {
     throw new Error(`TZ no es una zona horaria válida: ${timezone}`);
   }
 
+  const retentionDays = integer('RETENTION_DAYS', env, 60, MIN_RETENTION_DAYS, 3650);
+  const diskTriggerPercent = integer('DISK_TRIGGER_PERCENT', env, 90, 50, 99);
+  const diskRearmPercent = integer('DISK_REARM_PERCENT', env, 85, 40, 98);
+  if (diskRearmPercent >= diskTriggerPercent) {
+    throw new Error('DISK_REARM_PERCENT debe ser menor que DISK_TRIGGER_PERCENT');
+  }
+
+  const diskPressureRetentionDays = integer(
+    'DISK_PRESSURE_RETENTION_DAYS',
+    env,
+    Math.min(retentionDays, 30),
+    MIN_RETENTION_DAYS,
+    3650,
+  );
+  if (diskPressureRetentionDays > retentionDays) {
+    throw new Error('DISK_PRESSURE_RETENTION_DAYS no puede superar RETENTION_DAYS');
+  }
+
   return {
     supabaseUrl: normalizeSupabaseUrl(required('SUPABASE_URL', env)),
     serviceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY', env),
     mode: mode(env),
-    retentionDays: integer('RETENTION_DAYS', env, 60, MIN_RETENTION_DAYS, 3650),
+    retentionDays,
     schedule: env.PURGE_SCHEDULE?.trim() || '30 3 * * 0',
     timezone,
     runOnStart: boolean('RUN_ON_START', env, false),
@@ -74,6 +92,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): PurgeConfig {
       1000000,
     ),
     batchDelayMs: integer('BATCH_DELAY_MS', env, 150, 0, 10000),
+    diskMonitorEnabled: boolean('DISK_MONITOR_ENABLED', env, false),
+    diskPath: env.DISK_PATH?.trim() || '/',
+    diskTriggerPercent,
+    diskRearmPercent,
+    diskCheckIntervalMinutes: integer('DISK_CHECK_INTERVAL_MINUTES', env, 5, 1, 1440),
+    diskTriggerCooldownHours: integer('DISK_TRIGGER_COOLDOWN_HOURS', env, 6, 1, 168),
+    diskPressureRetentionDays,
   };
 }
 
