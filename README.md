@@ -55,11 +55,12 @@ Con `DISK_MONITOR_ENABLED=true`, el proceso consulta cada 5 minutos el sistema
 de archivos indicado por `DISK_PATH`. Al llegar a 90% solicita inmediatamente
 una purga con la misma protección de Procedimientos.
 
-La primera línea `Monitor de disco iniciado` informa `totalGiB`, `usedGiB` y
-`usedPercent`. Antes de activar `execute`, `totalGiB` debe coincidir
-aproximadamente con el disco del servidor. En la instalación actual se espera
-un total cercano a 376 GiB. Si muestra el tamaño del contenedor y no el disco
-del host, mantener el monitor desactivado hasta montar la ruta correcta.
+La primera línea `Monitor de disco iniciado` informa `totalGB`, `totalGiB`, uso
+y porcentaje. Antes de activar `execute`, `totalGB` debe coincidir
+aproximadamente con el disco que muestra EasyPanel; `totalGiB` puede ser menor
+por la diferencia entre unidades decimales y binarias. Si ambos muestran el
+tamaño del contenedor y no el disco del host, mantener el monitor desactivado
+hasta montar la ruta correcta.
 
 La política recomendada es:
 

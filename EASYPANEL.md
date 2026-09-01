@@ -44,9 +44,10 @@ coherentes, cambiar `PURGE_MODE=execute` y desplegar nuevamente. La ejecución
 real ocurrirá en el siguiente horario programado.
 
 En el mismo primer arranque, revisar el log `Monitor de disco iniciado`.
-`totalGiB` debe ser cercano al tamaño del disco que muestra EasyPanel. Para el
-servidor actual se esperan aproximadamente 376 GiB. Si no coincide, dejar
-`DISK_MONITOR_ENABLED=false`: el contenedor está observando otro filesystem.
+`totalGB` debe ser cercano a los 376,1 GB que muestra EasyPanel. `totalGiB`
+puede ser menor porque usa unidades binarias. Si el tamaño no corresponde al
+disco del servidor, dejar `DISK_MONITOR_ENABLED=false`: el contenedor está
+observando otro filesystem.
 
 ## 4. Operación
 
