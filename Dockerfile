@@ -18,4 +18,4 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 
 USER purge
-CMD ["node", "dist/src/index.js"]
+CMD ["node", "dist/index.js"]
