@@ -1,3 +1,4 @@
+import { Cron } from 'croner';
 import type { PurgeConfig, PurgeMode } from './types.js';
 
 const MIN_RETENTION_DAYS = 30;
@@ -39,6 +40,24 @@ function mode(env: NodeJS.ProcessEnv): PurgeMode {
   const value = env.PURGE_MODE?.trim().toLowerCase() || 'dry-run';
   if (value !== 'dry-run' && value !== 'execute') {
     throw new Error('PURGE_MODE debe ser dry-run o execute');
+  }
+  return value;
+}
+
+function optionalCron(
+  name: string,
+  env: NodeJS.ProcessEnv,
+  timezone: string,
+): string | null {
+  const raw = env[name];
+  if (raw === undefined) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  try {
+    const job = new Cron(value, { timezone, paused: true });
+    job.stop();
+  } catch {
+    throw new Error(`${name} no es una expresión cron válida`);
   }
   return value;
 }
@@ -97,6 +116,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): PurgeConfig {
     diskTriggerPercent,
     diskRearmPercent,
     diskCheckIntervalMinutes: integer('DISK_CHECK_INTERVAL_MINUTES', env, 5, 1, 1440),
+    diskCheckSchedule: optionalCron('DISK_CHECK_SCHEDULE', env, timezone),
     diskTriggerCooldownHours: integer('DISK_TRIGGER_COOLDOWN_HOURS', env, 6, 1, 168),
     diskPressureRetentionDays,
   };

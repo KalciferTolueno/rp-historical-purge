@@ -49,7 +49,7 @@ function mergeProtection(target: ProtectionSnapshot, source: ProtectionSnapshot)
 export function createSupabaseClient(config: PurgeConfig): SupabaseClient {
   return createClient(config.supabaseUrl, config.serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { 'X-Client-Info': 'rp-historical-purge/1.3.0' } },
+    global: { headers: { 'X-Client-Info': 'rp-historical-purge/1.4.0' } },
   });
 }
 

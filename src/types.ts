@@ -16,6 +16,7 @@ export interface PurgeConfig {
   diskTriggerPercent: number;
   diskRearmPercent: number;
   diskCheckIntervalMinutes: number;
+  diskCheckSchedule: string | null;
   diskTriggerCooldownHours: number;
   diskPressureRetentionDays: number;
 }

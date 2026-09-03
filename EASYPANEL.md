@@ -32,7 +32,7 @@ DISK_MONITOR_ENABLED=true
 DISK_PATH=/
 DISK_TRIGGER_PERCENT=90
 DISK_REARM_PERCENT=85
-DISK_CHECK_INTERVAL_MINUTES=5
+DISK_CHECK_SCHEDULE=30 4 * * *
 DISK_TRIGGER_COOLDOWN_HOURS=6
 DISK_PRESSURE_RETENTION_DAYS=30
 ```
@@ -56,7 +56,9 @@ observando otro filesystem.
 
 ## 4. Operación
 
-- Horario recomendado: domingo 03:30 `America/Santiago`.
+- Horario recomendado de retención: domingo 03:30 `America/Santiago`.
+- Revisión de disco recomendada: todos los días 04:30 (`DISK_CHECK_SCHEDULE`).
+  Si el uso llega a 90%, la purga de emergencia corre a esa hora, no cada 5 minutos.
 - Revisar semanalmente que exista un log de finalización.
 - Un error de protección o Storage termina la ejecución con un log de nivel `error`.
 - Mantener `LOG_FORMAT=pretty` para que la consola sea legible por cualquier operador.
@@ -64,8 +66,8 @@ observando otro filesystem.
   continúa con las filas CRA antiguas.
 - Antes de borrar Storage, el proceso comprueba las rutas usadas por todos los
   eventos CRA que permanecerán en la aplicación.
-- Al alcanzar 90%, el monitor usa la retención de emergencia de 30 días.
-- Si el disco continúa alto, espera 6 horas antes de repetir; al bajar a 85% se rearma.
+- Al alcanzar 90% en la revisión diaria, el monitor usa la retención de emergencia de 30 días.
+- Si el disco continúa alto, la siguiente revisión diaria puede repetir; al bajar a 85% se rearma.
 - No automatizar `VACUUM FULL`; realizarlo sólo como mantenimiento supervisado.
 
 ## 5. Detención inmediata

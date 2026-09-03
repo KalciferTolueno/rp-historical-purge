@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 2026-09-03
+
+- El monitor de disco puede revisar a una hora fija (`DISK_CHECK_SCHEDULE`) en
+  vez de cada pocos minutos. Si el umbral se alcanza, la purga de emergencia
+  corre en ese horario, no en plena recepción.
+- El arranque ya no dispara una purga por disco: sólo informa el uso actual y
+  la próxima revisión.
+- Si no se define `DISK_CHECK_SCHEDULE`, se conserva el intervalo en minutos.
+
 ## 1.3.0 — 2026-09-01
 
 - Orden seguro ante interrupciones: filas CRA primero y archivos Storage después.

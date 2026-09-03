@@ -84,6 +84,33 @@ test('explica cuando Storage queda intacto por límite CRA', () => {
   assert.match(output, /Quedan eventos CRA antiguos por retirar; no se tocó Storage/);
 });
 
+test('presenta la revisión diaria de disco en horario de Chile', () => {
+  const output = formatLogEntry(
+    {
+      timestamp,
+      level: 'info',
+      message: 'Monitor de disco iniciado',
+      context: {
+        path: '/',
+        usedPercent: 65.1,
+        usedGiB: 244.2,
+        usableTotalGiB: 376.1,
+        availableGiB: 131.9,
+        triggerPercent: 90,
+        rearmPercent: 85,
+        checkSchedule: '30 4 * * *',
+        nextCheck: '2026-09-04T08:30:00.000Z',
+        cooldownHours: 6,
+        pressureRetentionDays: 30,
+      },
+    },
+    'pretty',
+    'America/Santiago',
+  );
+  assert.match(output, /Todos los días 04:30/);
+  assert.match(output, /Próxima revisión: 04-09-2026 04:30:00/);
+});
+
 test('conserva JSON para integración técnica', () => {
   const entry: LogEntry = {
     timestamp,

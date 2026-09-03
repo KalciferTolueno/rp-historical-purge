@@ -48,7 +48,7 @@ DISK_MONITOR_ENABLED=true
 DISK_PATH=/
 DISK_TRIGGER_PERCENT=90
 DISK_REARM_PERCENT=85
-DISK_CHECK_INTERVAL_MINUTES=5
+DISK_CHECK_SCHEDULE=30 4 * * *
 DISK_TRIGGER_COOLDOWN_HOURS=6
 DISK_PRESSURE_RETENTION_DAYS=30
 ```
@@ -58,9 +58,22 @@ vista previa sea correcta, `PURGE_MODE=execute`.
 
 ## Protección por uso de disco
 
-Con `DISK_MONITOR_ENABLED=true`, el proceso consulta cada 5 minutos el sistema
-de archivos indicado por `DISK_PATH`. Al llegar a 90% solicita inmediatamente
-una purga con la misma protección de Procedimientos.
+Con `DISK_MONITOR_ENABLED=true`, el proceso observa `DISK_PATH`. Al llegar a 90%
+solicita una purga con la misma protección de Procedimientos.
+
+La revisión **no recorre CRA**. Solo lee el porcentaje de disco. Lo pesado es la
+purga si el umbral se cumple.
+
+Recomendado en producción: una revisión diaria a las 04:30 de Chile, para que
+una emergencia no coincida con la recepción:
+
+```env
+DISK_CHECK_SCHEDULE=30 4 * * *
+```
+
+Si `DISK_CHECK_SCHEDULE` está definido, el intervalo en minutos se ignora. Si no
+se define, se conserva `DISK_CHECK_INTERVAL_MINUTES` (por defecto 5). El arranque
+informa el uso actual y la próxima revisión; no dispara purga por disco.
 
 La primera línea `Monitor de disco iniciado` informa `totalGB`, `totalGiB`, uso
 y porcentaje. Antes de activar `execute`, `totalGB` debe coincidir
@@ -71,13 +84,12 @@ hasta montar la ruta correcta.
 
 La política recomendada es:
 
-- Purga semanal: conserva 60 días (`RETENTION_DAYS=60`).
-- Emergencia al 90%: conserva 30 días (`DISK_PRESSURE_RETENTION_DAYS=30`).
-- Si el disco sigue sobre 90%, puede repetir tras 6 horas.
-- Cuando baja a 85% se rearma para una futura subida.
+- Purga semanal domingo 03:30: conserva 60 días (`RETENTION_DAYS=60`).
+- Revisión de disco todos los días 04:30: si está al 90%, conserva 30 días.
+- Si el disco sigue sobre 90%, puede repetir al día siguiente; al bajar a 85% se rearma.
+- Una purga programada y una purga por disco nunca se ejecutan simultáneamente.
 
-El monitor respeta `PURGE_MODE`: en `dry-run` sólo informa qué eliminaría. Una
-purga programada y una purga por disco nunca se ejecutan simultáneamente.
+El monitor respeta `PURGE_MODE`: en `dry-run` sólo informa qué eliminaría.
 
 ## Logs para personas
 

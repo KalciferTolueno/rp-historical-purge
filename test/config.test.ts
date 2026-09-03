@@ -14,6 +14,7 @@ test('la configuración es segura por defecto', () => {
   assert.equal(config.retentionDays, 60);
   assert.equal(config.runOnStart, false);
   assert.equal(config.diskMonitorEnabled, false);
+  assert.equal(config.diskCheckSchedule, null);
   assert.equal(config.diskTriggerPercent, 90);
   assert.equal(config.diskPressureRetentionDays, 30);
 });
@@ -36,6 +37,22 @@ test('valida la histéresis y retención de emergencia', () => {
 
 test('rechaza una retención menor a 30 días', () => {
   assert.throws(() => loadConfig({ ...validEnv, RETENTION_DAYS: '29' }), /entre 30 y 3650/);
+});
+
+test('acepta un horario diario de revisión de disco', () => {
+  const config = loadConfig({
+    ...validEnv,
+    DISK_CHECK_SCHEDULE: '30 4 * * *',
+    TZ: 'America/Santiago',
+  });
+  assert.equal(config.diskCheckSchedule, '30 4 * * *');
+});
+
+test('rechaza un cron de disco inválido', () => {
+  assert.throws(
+    () => loadConfig({ ...validEnv, DISK_CHECK_SCHEDULE: 'no-es-cron' }),
+    /no es una expresión cron válida/,
+  );
 });
 
 test('calcula un corte móvil exacto', () => {

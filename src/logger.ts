@@ -55,6 +55,8 @@ const LABELS: Record<string, string> = {
   triggerPercent: 'La purga se activa al',
   rearmPercent: 'El monitor se rearma al',
   checkEveryMinutes: 'Frecuencia de revisión',
+  checkSchedule: 'Horario de revisión de disco',
+  nextCheck: 'Próxima revisión de disco',
   cooldownHours: 'Espera antes de repetir',
   pressureRetentionDays: 'Retención de emergencia',
 };
@@ -93,10 +95,14 @@ function modeLabel(value: unknown): string {
 function valueLabel(key: string, value: unknown, timezone: string): string {
   if (key === 'mode') return modeLabel(value);
   if (key === 'reason') return REASONS[String(value)] ?? String(value);
-  if (['nextRun', 'cutoff', 'startedAt', 'finishedAt'].includes(key) && typeof value === 'string') {
+  if (
+    ['nextRun', 'nextCheck', 'cutoff', 'startedAt', 'finishedAt'].includes(key) &&
+    typeof value === 'string'
+  ) {
     return `${localDate(value, timezone)} (${timezone})`;
   }
   if (key === 'schedule' && value === '30 3 * * 0') return 'Domingo 03:30 (30 3 * * 0)';
+  if (key === 'checkSchedule' && value === '30 4 * * *') return 'Todos los días 04:30 (30 4 * * *)';
   if (key === 'storageSkipReason' && value === 'cra-pending') {
     return 'Quedan eventos CRA antiguos por retirar; no se tocó Storage';
   }
@@ -124,7 +130,7 @@ function contextLines(context: Record<string, unknown>, timezone: string): strin
   );
 }
 
-function diskLines(context: Record<string, unknown>): string[] {
+function diskLines(context: Record<string, unknown>, timezone: string): string[] {
   const lines = [
     `  Disco observado: ${String(context.path ?? '/')}`,
     `  Uso actual: ${String(context.usedPercent ?? '—')}%`,
@@ -143,8 +149,13 @@ function diskLines(context: Record<string, unknown>): string[] {
   if (context.rearmPercent !== undefined) {
     lines.push(`  Se rearmará al bajar a: ${String(context.rearmPercent)}%`);
   }
-  if (context.checkEveryMinutes !== undefined) {
+  if (context.checkSchedule !== undefined) {
+    lines.push(`  Revisión: ${valueLabel('checkSchedule', context.checkSchedule, timezone)}`);
+  } else if (context.checkEveryMinutes !== undefined) {
     lines.push(`  Revisión: cada ${String(context.checkEveryMinutes)} minutos`);
+  }
+  if (context.nextCheck !== undefined) {
+    lines.push(`  Próxima revisión: ${valueLabel('nextCheck', context.nextCheck, timezone)}`);
   }
   if (context.cooldownHours !== undefined) {
     lines.push(`  Espera antes de repetir: ${String(context.cooldownHours)} horas`);
@@ -221,8 +232,12 @@ export function formatLogEntry(
   const context = entry.context ?? {};
   let lines: string[];
 
-  if (entry.message === 'Monitor de disco iniciado' || entry.message.includes('Umbral de disco')) {
-    lines = diskLines(context);
+  if (
+    entry.message === 'Monitor de disco iniciado' ||
+    entry.message === 'Revisión de disco: sin purga de emergencia' ||
+    entry.message.includes('Umbral de disco')
+  ) {
+    lines = diskLines(context, timezone);
   } else if (entry.message === 'Purga histórica finalizada') {
     lines = summaryLines(context, timezone);
   } else {

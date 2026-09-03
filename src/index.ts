@@ -14,6 +14,7 @@ const once = process.argv.includes('--once');
 let running = false;
 let checkingDisk = false;
 let diskTimer: NodeJS.Timeout | null = null;
+let diskJob: Cron | null = null;
 let diskState: DiskMonitorDecisionState = {
   pressureActive: false,
   lastTriggeredAt: null,
@@ -51,7 +52,7 @@ async function guardedRun(
   }
 }
 
-async function checkDisk(isInitialCheck = false): Promise<void> {
+async function checkDisk(): Promise<void> {
   if (!config.diskMonitorEnabled || checkingDisk) return;
   checkingDisk = true;
 
@@ -70,16 +71,7 @@ async function checkDisk(isInitialCheck = false): Promise<void> {
     );
     diskState = decision.state;
 
-    if (isInitialCheck) {
-      logger.info('Monitor de disco iniciado', {
-        ...diskUsageLogContext(usage),
-        triggerPercent: config.diskTriggerPercent,
-        rearmPercent: config.diskRearmPercent,
-        checkEveryMinutes: config.diskCheckIntervalMinutes,
-        cooldownHours: config.diskTriggerCooldownHours,
-        pressureRetentionDays: config.diskPressureRetentionDays,
-      });
-    } else if (decision.rearmed) {
+    if (decision.rearmed) {
       logger.info('Monitor de disco rearmado', diskUsageLogContext(usage));
     }
 
@@ -99,6 +91,8 @@ async function checkDisk(isInitialCheck = false): Promise<void> {
           lastTriggeredAt: previousDiskState.lastTriggeredAt,
         };
       }
+    } else if (config.diskCheckSchedule) {
+      logger.info('Revisión de disco: sin purga de emergencia', diskUsageLogContext(usage));
     }
   } catch (error) {
     logger.error('No se pudo revisar el uso del disco; no se ejecuta purga por presión', {
@@ -116,11 +110,44 @@ async function startDiskMonitor(): Promise<void> {
     return;
   }
 
-  await checkDisk(true);
-  diskTimer = setInterval(
-    () => void checkDisk(false),
-    config.diskCheckIntervalMinutes * 60 * 1000,
-  );
+  let nextCheck: string | null = null;
+  if (config.diskCheckSchedule) {
+    diskJob = new Cron(
+      config.diskCheckSchedule,
+      {
+        timezone: config.timezone,
+        protect: true,
+      },
+      () => {
+        void checkDisk();
+      },
+    );
+    nextCheck = diskJob.nextRun()?.toISOString() ?? null;
+  } else {
+    diskTimer = setInterval(
+      () => void checkDisk(),
+      config.diskCheckIntervalMinutes * 60 * 1000,
+    );
+  }
+
+  try {
+    const usage = await readDiskUsage(config.diskPath);
+    logger.info('Monitor de disco iniciado', {
+      ...diskUsageLogContext(usage),
+      triggerPercent: config.diskTriggerPercent,
+      rearmPercent: config.diskRearmPercent,
+      ...(config.diskCheckSchedule
+        ? { checkSchedule: config.diskCheckSchedule, nextCheck }
+        : { checkEveryMinutes: config.diskCheckIntervalMinutes }),
+      cooldownHours: config.diskTriggerCooldownHours,
+      pressureRetentionDays: config.diskPressureRetentionDays,
+    });
+  } catch (error) {
+    logger.error('No se pudo revisar el uso del disco; no se ejecuta purga por presión', {
+      path: config.diskPath,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 if (once) {
@@ -150,6 +177,7 @@ if (once) {
   const shutdown = (): void => {
     logger.info('Deteniendo programador');
     job.stop();
+    diskJob?.stop();
     if (diskTimer) clearInterval(diskTimer);
     process.exit(0);
   };
